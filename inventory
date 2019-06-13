@@ -1,0 +1,11 @@
+[prometheus-master]
+pandrade-test-3
+
+[node-exporter]
+pandrade-test-3
+pandrade-test-2
+pandrade-test-1
+
+
+[webserver:vars]
+# Local variables for Ansible playbooks

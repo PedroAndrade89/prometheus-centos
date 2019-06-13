@@ -1,0 +1,179 @@
+#Ansible playbook to deploy prometheus server and node-exporters
+
+---
+
+- hosts: prometheus-master
+  become: yes
+  become_method: sudo
+  tasks:
+
+
+    - name: Stop firewalld
+      systemd: 
+        name: firewalld 
+        state: stopped
+      ignore_errors: yes
+
+    - selinux:
+        state: disabled
+
+    - name: setenforce
+      shell: setenforce 0
+
+    - name: Download prometheus package
+      get_url:
+        url: https://github.com/prometheus/prometheus/releases/download/v2.10.0/prometheus-2.10.0.linux-amd64.tar.gz
+        dest: /tmp/
+        mode: '0750'
+
+    - name: Add the user prometheus
+      user:
+        name: prometheus
+        shell: /bin/false
+        create_home: no
+        append: yes
+
+    - name: Create /etc/prometheus and /var/lib/prometheus directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: prometheus
+        group: prometheus
+        mode: '0755'
+      with_items:
+        - /etc/prometheus
+        - /var/lib/prometheus
+
+    - name: Extract prometheus-2.10.0.linux-amd64.tar.gz
+      unarchive:
+        src: /tmp/prometheus-2.10.0.linux-amd64.tar.gz
+        dest: /tmp/
+        remote_src: yes
+
+    - name: Copy prometheus to /usr/local/bin/
+      copy:
+        src: /tmp/prometheus-2.10.0.linux-amd64/prometheus
+        dest: /usr/local/bin/
+        owner: prometheus
+        group: prometheus
+        mode: '0744'
+        remote_src: yes
+
+    - name: Copy promtool to /usr/local/bin/
+      copy:
+        src: /tmp/prometheus-2.10.0.linux-amd64/promtool
+        dest: /usr/local/bin/
+        owner: prometheus
+        group: prometheus
+        mode: '0744'
+        remote_src: yes
+
+    - name: Copy consoles to /etc/prometheus
+      command: "{{ item }}"
+      with_items:
+        - cp -r /tmp/prometheus-2.10.0.linux-amd64/consoles /etc/prometheus
+        - chown -R prometheus:prometheus /etc/prometheus/consoles
+        - chmod -R 744 /etc/prometheus/consoles
+
+    - name: Copy console_libraries to /etc/prometheus
+      command: "{{ item }}"
+      with_items:
+        - cp -r /tmp/prometheus-2.10.0.linux-amd64/console_libraries /etc/prometheus
+        - chown -R prometheus:prometheus /etc/prometheus/console_libraries
+        - chmod -R 744 /etc/prometheus/console_libraries
+
+    - name: Copy prometheus conf file to /etc/prometheus
+      copy:
+        src: prometheus.yml
+        dest: /etc/prometheus/
+        owner: prometheus
+        group: prometheus
+
+    - name: Copy prometheus service file to /etc/systemd/system/
+      copy:
+        src: prometheus.service
+        dest: /etc/systemd/system/
+        mode: '0755'
+
+    - name: Start prometheus
+      systemd: 
+        name: prometheus 
+        state: restarted
+
+- hosts: node-exporter
+  become: yes
+  become_method: sudo
+  tasks:
+
+
+    - selinux:
+        state: disabled
+
+    - name: setenforce
+      shell: setenforce 0
+
+    - name: Download node-exporter package
+      get_url:
+        url: https://github.com/prometheus/node_exporter/releases/download/v0.18.1/node_exporter-0.18.1.linux-amd64.tar.gz
+        dest: /tmp/
+        mode: '0750'
+
+    - name: Stop firewalld
+      systemd: 
+        name: firewalld 
+        state: stopped
+      ignore_errors: yes
+
+    - name: Add the user nodeusr
+      user:
+        name: nodeusr
+        shell: /bin/false
+        create_home: no
+        append: yes
+
+    - name: Extract node_exporter-0.18.1.linux-amd64.tar.gz
+      unarchive:
+        src: /tmp/node_exporter-0.18.1.linux-amd64.tar.gz
+        dest: /tmp/
+        remote_src: yes
+
+    - name: Copy node_exporter-0.18.1.linux-amd64/node_exporter to /usr/local/bin/
+      copy:
+        src: /tmp/node_exporter-0.18.1.linux-amd64/node_exporter
+        dest: /usr/local/bin/
+        owner: nodeusr
+        group: nodeusr
+        mode: '0744'
+        remote_src: yes
+
+    - name: Copy node-exporter service file to /etc/systemd/system/
+      copy:
+        src: node_exporter.service
+        dest: /etc/systemd/system/
+        mode: '0755'
+
+    - name: Start node-exporter
+      systemd: 
+        name: node_exporter 
+        state: restarted
+
+
+
+    
+
+
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
