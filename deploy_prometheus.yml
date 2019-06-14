@@ -33,7 +33,7 @@
         create_home: no
         append: yes
 
-    - name: Create /etc/prometheus and /var/lib/prometheus directories
+    - name: Create prometheus directories
       file:
         path: "{{ item }}"
         state: directory
